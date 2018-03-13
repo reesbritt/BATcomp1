@@ -104,15 +104,16 @@ instance ProgrammableComputer BATConfig  where
     doNextMove (x:xs) (BATConfig cfgBoxes cfgCounter)
       |x == (CLR _) = BATConfig clrBoxes newCounter
       |x == (INC _) = BATConfig incBoxes newCounter
-      |jeqBoxOne == jeqBoxTwo = BATConfig cfgBoxes target(x)
+      |jeqBoxOne == jeqBoxTwo = BATConfig cfgBoxes targetCounter
       |otherwise = BATConfig cfgBoxes newCounter
 
         where
           newCounter = cfgCounter + 1
+          targetCounter = target(x)
           splitBoxes = splitAt (box(x)-1) cfgBoxes
 
           clrBoxes = (fst splitBoxes) ++ [0] ++ (tail (snd splitBoxes))
-          incBoxes = (fst splitBoxes) ++ ((head (snd splitBoxes)) +1) ++ (tail (snd splitBoxes))
+          incBoxes = (fst splitBoxes) ++ [(head (snd splitBoxes)) +1] ++ (tail (snd splitBoxes))
 
           jeqBoxOne = box1(x)
           jeqBoxTwo = box2(x)
@@ -120,8 +121,8 @@ instance ProgrammableComputer BATConfig  where
 
     -- PROBLEM 6: runFrom      :: Program -> cfg -> cfg
     runFrom program (BATConfig cfgBoxes cfgCounter)
-      |acceptState program BATConfig  = BATConfig
-      |otherwise = runFrom program (doNextMove program BATConfig)
+      |acceptState program (BATConfig cfgBoxes cfgCounter) = BATConfig cfgBoxes cfgCounter
+      |otherwise = runFrom program (doNextMove program (BATConfig cfgBoxes cfgCounter))
 
     -- PROBLEM 7: getOutput    :: cfg -> Output
 
