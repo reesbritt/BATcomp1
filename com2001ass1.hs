@@ -53,11 +53,25 @@ type Program = [Instruction]
 -- more boxes.  What is the highest box number used
 -- anywhere in the program?
 maxBoxNum :: Program -> Int
-maxBoxNum (x:xs)
-  |null(xs) = box(x)
-  |box(head(xs)) > box(x) = maxBoxNum(xs)
-  |otherwise = maxBoxNum(x:(drop 1 xs))
+maxBoxNum xs = (maximum (makeList xs []))
 
+
+
+makeList :: Program -> [Int] -> [Int]
+makeList (x:xs) boxList
+ |null xs && x == (JEQ r s t)  = boxList ++ jeqBoxList
+ |null xs = boxList ++ newBoxList
+ |x == (JEQ r s t) = makeList xs jeqBoxList
+ |otherwise = makeList xs newBoxList
+
+
+  where
+   r = box1(x)
+   s = box2(x)
+   t = target(x)
+
+   newBoxList = boxList ++ [box(x)]
+   jeqBoxList = boxList ++ [r] ++ [s]
 
 -- The configuration of a BATcomputer is given once
 -- you know how many tokens are in each box, and
@@ -72,11 +86,11 @@ data BATConfig = BATConfig {
 -- --------------------------
 instance Show BATConfig where
     show (BATConfig b c) =
-      show "boxes =" ++ show b++ "counter = " ++ show c
+      show "boxes =" ++ show b++ " counter = " ++ show c
 
 fillBoxes :: [Int] -> Int -> [Int]
 fillBoxes boxes maxbox
-  |((length boxes) == maxbox)= boxes
+  |((length boxes) >= maxbox)= boxes
   |otherwise = fillBoxes (boxes++[0]) maxbox
 
 -- IMPLEMENTING THE BATComputer
@@ -91,32 +105,38 @@ instance ProgrammableComputer BATConfig  where
         boxes = (fillBoxes initboxes (maxBoxNum program))
         counter = 0
 
-
-
-
-
     -- PROBLEM 4: acceptState  :: Program -> cfg -> Bool
     acceptState program (BATConfig cfgBoxes cfgCounter)
-      |cfgCounter > length cfgBoxes = True
+      |cfgCounter >= length program = True
       |otherwise = False
 
     -- PROBLEM 5: doNextMove   :: Program -> cfg -> cfg
-    doNextMove (x:xs) (BATConfig cfgBoxes cfgCounter)
-      |x == (CLR _) = BATConfig clrBoxes newCounter
-      |x == (INC _) = BATConfig incBoxes newCounter
-      |jeqBoxOne == jeqBoxTwo = BATConfig cfgBoxes targetCounter
+    doNextMove xs (BATConfig cfgBoxes cfgCounter)
+      |x == (CLR targetBox) = BATConfig clrBoxes newCounter
+      |x == (INC targetBox) = BATConfig incBoxes newCounter
+      |x == (JEQ r s t) && (jeqOne == jeqTwo) = BATConfig cfgBoxes t
       |otherwise = BATConfig cfgBoxes newCounter
 
         where
+          x = xs !! cfgCounter
+
           newCounter = cfgCounter + 1
-          targetCounter = target(x)
-          splitBoxes = splitAt (box(x)-1) cfgBoxes
+          splitBoxes = splitAt (targetBox) cfgBoxes
+          targetBox = box(x)
 
           clrBoxes = (fst splitBoxes) ++ [0] ++ (tail (snd splitBoxes))
-          incBoxes = (fst splitBoxes) ++ [(head (snd splitBoxes)) +1] ++ (tail (snd splitBoxes))
 
-          jeqBoxOne = box1(x)
-          jeqBoxTwo = box2(x)
+          incX = (head (snd splitBoxes)) +1
+          incBoxes = (fst splitBoxes) ++ [incX] ++ (tail (snd splitBoxes))
+
+
+          r = box1(x)
+          s = box2(x)
+          jeqOne = cfgBoxes !! r
+          jeqTwo = cfgBoxes !! s
+          t = target(x)
+
+
 
 
     -- PROBLEM 6: runFrom      :: Program -> cfg -> cfg
@@ -136,15 +156,16 @@ instance ProgrammableComputer BATConfig  where
 -- running program p with user input(s) xs
 execute :: Program -> [Input] -> Output
 execute p ins = getOutput ((runProgram p ins) :: BATConfig)
-{--
+
 
 -- PROBLEM 8. YOUR CODE HERE
 -- ---------------------------
 -- start a program at instruction n instead of 0.  In other
 -- words, change Jump instructions from (J x y t) to (J x y (t+n))
 -- and leave all other instructions unchanged.
-transpose :: Int -> Program -> Program
-transpose ...
+
+--transpose :: Int -> Program -> Program
+--transpose n xs = drop (n-1) xs
 
 
 
@@ -152,10 +173,13 @@ transpose ...
 -- ---------------------------
 -- join two programs together, so as to run one
 -- after the other
-(*->*) :: Program -> Program -> Program
-p1 *->* p2 = ...
+--(*->*) :: Program -> Program -> Program
+--p1 *->* p2 =
 
 
+
+
+{--
 -- PROBLEM 10. YOUR CODE HERE
 -- ---------------------------
 -- program to compute B1 = B1 + B2
